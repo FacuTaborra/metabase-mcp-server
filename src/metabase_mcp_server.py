@@ -14,6 +14,7 @@ from application.services import (
     UserService,
     GroupService,
     DatasetService,
+    TableService,
 )
 from adapters.inbound.mcp import (
     register_collection_tools,
@@ -23,6 +24,7 @@ from adapters.inbound.mcp import (
     register_user_tools,
     register_group_tools,
     register_dataset_tools,
+    register_table_tools,
 )
 
 # --- Configuration & logging ---
@@ -57,6 +59,7 @@ register_database_tools(mcp, DatabaseService(gateway))
 register_user_tools(mcp, UserService(gateway))
 register_group_tools(mcp, GroupService(gateway))
 register_dataset_tools(mcp, DatasetService(gateway))
+register_table_tools(mcp, TableService(gateway))
 
 
 if __name__ == "__main__":

@@ -5,6 +5,7 @@ from .database_tools import register_database_tools
 from .user_tools import register_user_tools
 from .group_tools import register_group_tools
 from .dataset_tools import register_dataset_tools
+from .table_tools import register_table_tools
 
 __all__ = [
     "register_collection_tools",
@@ -14,4 +15,5 @@ __all__ = [
     "register_user_tools",
     "register_group_tools",
     "register_dataset_tools",
+    "register_table_tools",
 ]

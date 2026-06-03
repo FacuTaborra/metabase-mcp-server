@@ -5,6 +5,7 @@ from .database_service import DatabaseService
 from .user_service import UserService
 from .group_service import GroupService
 from .dataset_service import DatasetService
+from .table_service import TableService
 
 __all__ = [
     "CollectionService",
@@ -14,4 +15,5 @@ __all__ = [
     "UserService",
     "GroupService",
     "DatasetService",
+    "TableService",
 ]
