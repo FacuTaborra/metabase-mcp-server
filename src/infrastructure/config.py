@@ -44,7 +44,7 @@ def parse_configuration() -> Configuration:
     """
 
     # Load environment variables
-    load_dotenv(override=True)
+    load_dotenv(override=False)
 
     parser = argparse.ArgumentParser(
         description="Metabase MCP Server",

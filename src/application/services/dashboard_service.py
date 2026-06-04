@@ -11,10 +11,62 @@ logger = logging.getLogger("metabase-mcp")
 # (heading/text/link) legitimately carry card_id=null and must keep it.
 _DROP_IF_NONE = {"dashboard_tab_id", "inline_parameters"}
 
+# Fields accepted by PUT /api/dashboard/:id dashcards. The GET response embeds
+# a full nested `card` object (with result_metadata, dataset_query, etc.) that
+# Metabase rejects when echoed back — sending it causes a transaction abort (500).
+_DASHCARD_PUT_FIELDS = frozenset({
+    "id", "card_id", "row", "col", "size_x", "size_y",
+    "series", "parameter_mappings", "visualization_settings",
+    "dashboard_tab_id", "action_id", "inline_parameters",
+})
+
 
 def _serialize_card(card: DashboardCard) -> Dict[str, Any]:
     """Serialize a DashboardCard model, dropping only the truly-optional None fields."""
     return {k: v for k, v in card.__dict__.items() if not (v is None and k in _DROP_IF_NONE)}
+
+
+def _strip_for_put(c: Dict[str, Any]) -> Dict[str, Any]:
+    """Strip a raw GET dashcard to only the fields accepted by PUT /api/dashboard/:id.
+
+    The GET response embeds nested objects that Metabase rejects in PUT:
+    - `card`: full card object (result_metadata, dataset_query, etc.) → dropped entirely
+    - `series`: full card objects → normalized to [{id: card_id}] minimal references
+    - `visualization_settings.virtual_card`: may contain complex internal Metabase fields
+      (dataset_query with Clojure fn references, etc.) → stripped to minimal display format
+    Sending these verbatim causes a Postgres transaction abort (500).
+    """
+    result = {k: v for k, v in c.items() if k in _DASHCARD_PUT_FIELDS}
+
+    # Normalize series to minimal card references
+    if result.get("series"):
+        result["series"] = [
+            {"id": s["id"]} for s in result["series"]
+            if isinstance(s, dict) and "id" in s
+        ]
+
+    # For virtual cards (heading/text/link), strip the nested virtual_card object
+    # to minimal safe format. The GET embeds internal fields inside virtual_card
+    # (complex dataset_query, fn references, etc.) that the PUT rejects.
+    if result.get("card_id") is None:
+        viz = result.get("visualization_settings") or {}
+        vc = viz.get("virtual_card")
+        if vc:
+            result["visualization_settings"] = {
+                **{k: v for k, v in viz.items() if k != "virtual_card"},
+                "virtual_card": {
+                    "display": vc.get("display"),
+                    "name": vc.get("name"),
+                    "visualization_settings": {},
+                    "dataset_query": {},
+                },
+            }
+
+    # Drop optional None fields (same logic as _serialize_card / _DROP_IF_NONE)
+    for field in _DROP_IF_NONE:
+        if result.get(field) is None:
+            result.pop(field, None)
+    return result
 
 
 def _summarize_dashcard(c: Dict[str, Any]) -> Dict[str, Any]:
@@ -99,14 +151,37 @@ class DashboardService:
         return await self._gw.post("/api/dashboard", json=payload)
 
     async def _put_dashcards(
-        self, dashboard_id: int, dashcards_raw: List[Dict[str, Any]]
+        self,
+        dashboard_id: int,
+        dashcards_raw: List[Dict[str, Any]],
+        tabs: Optional[List[Dict[str, Any]]] = None,
     ) -> Dict[str, Any]:
         """
-        PUT only the dashcards array. Metabase does a partial update, so every other
-        dashboard field (name, tabs, parameters, embedding, ...) is preserved untouched.
-        Sending the existing dashcards verbatim (Metabase's own GET shape) is accepted.
+        PUT the dashcards (and tabs) via PUT /api/dashboard/:id/cards.
+        Tabs MUST be included in the payload — without them, Metabase deletes all
+        dashboard_tab rows for the dashboard, causing FK constraint failures on insert.
+        Raw GET dashcards are stripped to PUT-safe fields. Broken virtual cards
+        (card_id=null without virtual_card settings) are dropped.
         """
-        return await self._gw.put(f"/api/dashboard/{dashboard_id}", json={"dashcards": dashcards_raw})
+        cleaned = []
+        for c in dashcards_raw:
+            stripped = _strip_for_put(c)
+            if stripped.get("card_id") is None:
+                # Keep only legitimate virtual cards (text/heading/link widgets)
+                viz = c.get("visualization_settings") or {}
+                if not viz.get("virtual_card"):
+                    logger.warning(
+                        f"Dropping broken dashcard id={stripped.get('id')} "
+                        f"(card_id=null, no virtual_card) from dashboard {dashboard_id}"
+                    )
+                    continue
+            cleaned.append(stripped)
+
+        payload: Dict[str, Any] = {"cards": cleaned}
+        if tabs:
+            payload["tabs"] = [{"id": t["id"], "name": t.get("name", "")} for t in tabs]
+
+        return await self._gw.put(f"/api/dashboard/{dashboard_id}/cards", json=payload)
 
     async def update(
         self,
@@ -193,6 +268,7 @@ class DashboardService:
         """Append a single card to a dashboard, preserving all existing dashcards."""
         existing = await self._gw.get(f"/api/dashboard/{dashboard_id}")
         current = existing.get("dashcards", []) or []
+        tabs = existing.get("tabs", []) or []
 
         new_card: Dict[str, Any] = {
             "id": -1,  # Metabase assigns the real id
@@ -209,17 +285,18 @@ class DashboardService:
             new_card["dashboard_tab_id"] = dashboard_tab_id
 
         logger.info(f"Adding card {card_id} to dashboard {dashboard_id}")
-        return await self._put_dashcards(dashboard_id, current + [new_card])
+        return await self._put_dashcards(dashboard_id, current + [new_card], tabs=tabs)
 
     async def remove_card(self, dashboard_id: int, dashcard_id: int) -> Dict[str, Any]:
         """Remove a single dashcard (by its dashcard id) preserving the rest."""
         existing = await self._gw.get(f"/api/dashboard/{dashboard_id}")
         current = existing.get("dashcards", []) or []
+        tabs = existing.get("tabs", []) or []
         new_list = [c for c in current if c.get("id") != dashcard_id]
         if len(new_list) == len(current):
             raise ValueError(f"dashcard {dashcard_id} not found in dashboard {dashboard_id}")
         logger.info(f"Removing dashcard {dashcard_id} from dashboard {dashboard_id}")
-        return await self._put_dashcards(dashboard_id, new_list)
+        return await self._put_dashcards(dashboard_id, new_list, tabs=tabs)
 
     async def move_resize_card(
         self,
@@ -233,6 +310,7 @@ class DashboardService:
         """Change position/size of one dashcard, leaving every other field and card intact."""
         existing = await self._gw.get(f"/api/dashboard/{dashboard_id}")
         current = existing.get("dashcards", []) or []
+        tabs = existing.get("tabs", []) or []
         found = False
         for c in current:
             if c.get("id") == dashcard_id:
@@ -249,7 +327,7 @@ class DashboardService:
         if not found:
             raise ValueError(f"dashcard {dashcard_id} not found in dashboard {dashboard_id}")
         logger.info(f"Moving/resizing dashcard {dashcard_id} on dashboard {dashboard_id}")
-        return await self._put_dashcards(dashboard_id, current)
+        return await self._put_dashcards(dashboard_id, current, tabs=tabs)
 
     async def delete(self, dashboard_id: int) -> Dict[str, Any]:
         logger.info(f"Deleting dashboard {dashboard_id}")
