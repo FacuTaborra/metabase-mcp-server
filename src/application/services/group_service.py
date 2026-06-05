@@ -2,6 +2,7 @@ import logging
 from typing import Any, Dict, Optional
 
 from application.ports.metabase_gateway import MetabaseGateway
+from application.schemas import GroupCreatePayload
 
 logger = logging.getLogger("metabase-mcp")
 
@@ -16,10 +17,7 @@ class GroupService:
         return await self._gw.get("/api/permissions/group")
 
     async def create(self, name: str, ldap_dn: Optional[str] = None) -> Dict[str, Any]:
-        payload: Dict[str, Any] = {"name": name}
-        if ldap_dn is not None:
-            payload["ldap_dn"] = ldap_dn
-
+        payload = GroupCreatePayload(name=name, ldap_dn=ldap_dn).model_dump(exclude_none=True)
         logger.info(f"Creating group '{name}'")
         return await self._gw.post("/api/permissions/group", json=payload)
 

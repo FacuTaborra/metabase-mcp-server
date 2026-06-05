@@ -2,6 +2,7 @@ import logging
 from typing import Any, Dict, Optional
 
 from application.ports.metabase_gateway import MetabaseGateway
+from application.schemas import DatabaseCreatePayload, DatabaseUpdatePayload
 
 logger = logging.getLogger("metabase-mcp")
 
@@ -27,24 +28,17 @@ class DatabaseService:
         timezone: Optional[str] = None,
         metadata_sync: Optional[bool] = None,
     ) -> Dict[str, Any]:
-        payload: Dict[str, Any] = {
-            "name": name,
-            "engine": engine,
-            "details": details,
-        }
-        if auto_run_queries is not None:
-            payload["auto_run_queries"] = auto_run_queries
-        if cache_ttl is not None:
-            payload["cache_ttl"] = cache_ttl
-        if is_full_sync is not None:
-            payload["is_full_sync"] = is_full_sync
-        if schedule is not None:
-            payload["schedule"] = schedule
-        if timezone is not None:
-            payload["timezone"] = timezone
-        if metadata_sync is not None:
-            payload["metadata_sync"] = metadata_sync
-
+        payload = DatabaseCreatePayload(
+            name=name,
+            engine=engine,
+            details=details,
+            auto_run_queries=auto_run_queries,
+            cache_ttl=cache_ttl,
+            is_full_sync=is_full_sync,
+            schedule=schedule,
+            timezone=timezone,
+            metadata_sync=metadata_sync,
+        ).model_dump(exclude_none=True)
         logger.info(f"Creating database '{name}'")
         return await self._gw.post("/api/database", json=payload)
 
@@ -60,24 +54,16 @@ class DatabaseService:
         timezone: Optional[str] = None,
         metadata_sync: Optional[bool] = None,
     ) -> Dict[str, Any]:
-        payload: Dict[str, Any] = {}
-        if name is not None:
-            payload["name"] = name
-        if details is not None:
-            payload["details"] = details
-        if auto_run_queries is not None:
-            payload["auto_run_queries"] = auto_run_queries
-        if cache_ttl is not None:
-            payload["cache_ttl"] = cache_ttl
-        if is_full_sync is not None:
-            payload["is_full_sync"] = is_full_sync
-        if schedule is not None:
-            payload["schedule"] = schedule
-        if timezone is not None:
-            payload["timezone"] = timezone
-        if metadata_sync is not None:
-            payload["metadata_sync"] = metadata_sync
-
+        payload = DatabaseUpdatePayload(
+            name=name,
+            details=details,
+            auto_run_queries=auto_run_queries,
+            cache_ttl=cache_ttl,
+            is_full_sync=is_full_sync,
+            schedule=schedule,
+            timezone=timezone,
+            metadata_sync=metadata_sync,
+        ).model_dump(exclude_none=True)
         logger.info(f"Updating database {database_id}")
         return await self._gw.put(f"/api/database/{database_id}", json=payload)
 

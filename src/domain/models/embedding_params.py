@@ -1,14 +1,10 @@
-from dataclasses import dataclass
 from typing import Optional
 
-@dataclass
-class EmbeddingParams:
-    """
-    Represents embedding parameters for Metabase dashboards.
+from pydantic import BaseModel
 
-    Attributes:
-        url (Optional[str]): The embedding URL
-        custom_css (Optional[str]): Custom CSS for the embedded view
-    """
+
+class EmbeddingParams(BaseModel):
+    """Represents embedding parameters for Metabase dashboards."""
+
     url: Optional[str] = None
     custom_css: Optional[str] = None

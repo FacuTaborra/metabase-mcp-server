@@ -2,6 +2,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from application.ports.metabase_gateway import MetabaseGateway
+from application.schemas import UserCreatePayload, UserUpdatePayload
 
 logger = logging.getLogger("metabase-mcp")
 
@@ -25,19 +26,15 @@ class UserService:
         group_ids: Optional[List] = None,
         is_superuser: Optional[bool] = None,
     ) -> Dict[str, Any]:
-        payload: Dict[str, Any] = {
-            "first_name": first_name,
-            "last_name": last_name,
-            "email": email,
-            "password": password,
-        }
-        if login_attributes is not None:
-            payload["login_attributes"] = login_attributes
-        if group_ids is not None:
-            payload["group_ids"] = group_ids
-        if is_superuser is not None:
-            payload["is_superuser"] = is_superuser
-
+        payload = UserCreatePayload(
+            first_name=first_name,
+            last_name=last_name,
+            email=email,
+            password=password,
+            login_attributes=login_attributes,
+            group_ids=group_ids,
+            is_superuser=is_superuser,
+        ).model_dump(exclude_none=True)
         logger.info(f"Creating user '{email}'")
         return await self._gw.post("/api/user", json=payload)
 
@@ -52,22 +49,15 @@ class UserService:
         group_ids: Optional[List] = None,
         is_superuser: Optional[bool] = None,
     ) -> Dict[str, Any]:
-        payload: Dict[str, Any] = {}
-        if first_name is not None:
-            payload["first_name"] = first_name
-        if last_name is not None:
-            payload["last_name"] = last_name
-        if email is not None:
-            payload["email"] = email
-        if password is not None:
-            payload["password"] = password
-        if login_attributes is not None:
-            payload["login_attributes"] = login_attributes
-        if group_ids is not None:
-            payload["group_ids"] = group_ids
-        if is_superuser is not None:
-            payload["is_superuser"] = is_superuser
-
+        payload = UserUpdatePayload(
+            first_name=first_name,
+            last_name=last_name,
+            email=email,
+            password=password,
+            login_attributes=login_attributes,
+            group_ids=group_ids,
+            is_superuser=is_superuser,
+        ).model_dump(exclude_none=True)
         logger.info(f"Updating user {user_id}")
         return await self._gw.put(f"/api/user/{user_id}", json=payload)
 

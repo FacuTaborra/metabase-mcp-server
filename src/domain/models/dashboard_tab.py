@@ -1,14 +1,10 @@
-from dataclasses import dataclass
 from typing import Optional
 
-@dataclass
-class DashboardTab:
-    """
-    Represents a tab within a Metabase dashboard.
+from pydantic import BaseModel
 
-    Attributes:
-        id (Optional[int]): The tab ID, optional for new tabs
-        name (str): The name of the tab
-    """
+
+class DashboardTab(BaseModel):
+    """Represents a tab within a Metabase dashboard."""
+
     id: Optional[int] = None
     name: str = ""

@@ -19,9 +19,10 @@
 9. [Remote Deployment](#-remote-deployment)
 10. [Debugging with MCP Inspector](#-debugging-with-mcp-inspector)
 11. [Available Tools](#-available-tools)
-12. [Example Prompts to Try](#-example-prompts-to-try)
-13. [Connect with Us](#-connect-with-us)
-14. [License](#-license)
+12. [Skills](#-skills)
+13. [Example Prompts to Try](#-example-prompts-to-try)
+14. [Connect with Us](#-connect-with-us)
+15. [License](#-license)
 
 ---
 
@@ -184,6 +185,60 @@ Choose your preferred MCP clients like Claude Desktop app, Claude Code, Cursor, 
 
 **For stdio transport (recommended for local MCP server):**
 
+**Option A: Using `uv run` (recommended — no need to manage the virtualenv path)**
+
+Windows:
+
+```json
+{
+  "mcpServers": {
+    "metabase": {
+      "type": "stdio",
+      "command": "uv",
+      "args": [
+        "--directory",
+        "C:\\Users\\YourName\\Projects\\metabase-mcp-server",
+        "run",
+        "python",
+        "src\\metabase_mcp_server.py"
+      ],
+      "env": {
+        "METABASE_URL": "http://localhost:3000",
+        "METABASE_API_KEY": "mb_xxx_your_key"
+      }
+    }
+  }
+}
+```
+
+Mac/Linux:
+
+```json
+{
+  "mcpServers": {
+    "metabase": {
+      "type": "stdio",
+      "command": "uv",
+      "args": [
+        "--directory",
+        "/Users/YourName/Projects/metabase-mcp-server",
+        "run",
+        "python",
+        "src/metabase_mcp_server.py"
+      ],
+      "env": {
+        "METABASE_URL": "http://localhost:3000",
+        "METABASE_API_KEY": "mb_xxx_your_key"
+      }
+    }
+  }
+}
+```
+
+> **Tip:** Setting `METABASE_URL` and `METABASE_API_KEY` in the MCP client config (as shown above) takes priority over the `.env` file, so you don't need to edit `.env` after cloning.
+
+**Option B: Using the virtualenv Python path directly**
+
 Windows:
 
 ```json
@@ -207,7 +262,7 @@ Mac:
   "mcpServers": {
     "metabase": {
       "type": "stdio",
-      "command": "/Users/YourName/Projects/metabase-mcp-server/venv/Scripts/python",
+      "command": "/Users/YourName/Projects/metabase-mcp-server/.venv/bin/python",
       "args": [
         "/Users/YourName/Projects/metabase-mcp-server/src/metabase_mcp_server.py"
       ]
@@ -336,11 +391,11 @@ You no longer need to go through the steps of cloning the repository and setting
    Check the link below to download the latest **DXT file** directly:  
    [Download DXT File](./metabase-mcp-server.dxt)
 
-2. **Open the Cloude Desktop App**  
-   Once you have the file, open the **Cloude Desktop App** on your system.
+2. **Open the Claude Desktop App**  
+   Once you have the file, open the **Claude Desktop App** on your system.
 
 3. **Navigate to Extensions Settings**  
-   In the **Cloude Desktop App**:
+   In the **Claude Desktop App**:
 
    - Go to **Files** → **Settings** → **Extensions**
    - Then click on **Advanced Settings**.
@@ -357,7 +412,7 @@ You no longer need to go through the steps of cloning the repository and setting
 6. **Complete the Setup**  
    After entering the necessary details, click **Save** to apply the configuration.
 
-That's it! The **Metabase MCP Server** is now installed and ready to use in your **Cloude Desktop App**.
+That's it! The **Metabase MCP Server** is now installed and ready to use in your **Claude Desktop App**.
 
 ## How to Create Your Own DXT File
 
@@ -496,6 +551,8 @@ Once running, open your browser to `http://localhost:5173` to access the inspect
 | Function                     | Description                            |
 | ---------------------------- | -------------------------------------- |
 | **Collection Operations**    |                                        |
+| `get_metabase_collections`   | List all collections                   |
+| `get_collection_items`       | Get items inside a collection          |
 | `get_metabase_collection`    | Get a collection by ID                 |
 | `create_metabase_collection` | Create a new collection                |
 | `update_metabase_collection` | Update collection metadata             |
@@ -510,16 +567,20 @@ Once running, open your browser to `http://localhost:5173` to access the inspect
 | `get_metabase_dashboards`    | List all dashboards                    |
 | `get_dashboard_by_id`        | Get a dashboard by ID                  |
 | `get_dashboard_cards`        | Get cards in a dashboard               |
-| `get_dashboard_items`        | Get all dashboard items                |
 | `create_metabase_dashboard`  | Create a dashboard                     |
 | `update_metabase_dashboard`  | Update a dashboard                     |
 | `delete_metabase_dashboard`  | Delete a dashboard                     |
 | `copy_metabase_dashboard`    | Create a copy of an existing dashboard |
-| **Database Operations**      |                                        |
-| `get_metabase_databases`     | List databases                         |
-| `create_metabase_database`   | Create a new database connection       |
-| `update_metabase_database`   | Update a database connection           |
-| `delete_metabase_database`   | Delete a database connection           |
+| `add_card_to_dashboard`      | Add a saved question to a dashboard    |
+| `remove_card_from_dashboard` | Remove a card from a dashboard         |
+| `move_resize_dashboard_card` | Move or resize a card on a dashboard   |
+| **Database Operations**           |                                        |
+| `get_metabase_databases`          | List databases                         |
+| `get_metabase_database_metadata`  | Get tables and fields for a database   |
+| `get_metabase_table_metadata`     | Get field details for a table          |
+| `create_metabase_database`        | Create a new database connection       |
+| `update_metabase_database`        | Update a database connection           |
+| `delete_metabase_database`        | Delete a database connection           |
 | **User Operations**          |                                        |
 | `get_metabase_users`         | List all users                         |
 | `get_metabase_current_user`  | Get current user details               |
@@ -535,11 +596,44 @@ Once running, open your browser to `http://localhost:5173` to access the inspect
 
 ---
 
+## 🎯 Skills
+
+Skills are workflow instructions for Claude that unlock guided, multi-step experiences on top of the MCP tools — without requiring technical knowledge from the user.
+
+### `metabase-chart` — Business chart assistant (Spanish)
+
+A guided workflow for non-technical users to create charts and dashboards through natural language. Claude handles all technical details (field IDs, MBQL format, grid positioning) invisibly.
+
+**Install:**
+
+```bash
+# Windows
+copy skills\metabase-chart\SKILL.md "%APPDATA%\Claude\skills\metabase-chart\SKILL.md"
+
+# macOS/Linux
+mkdir -p ~/.claude/skills/metabase-chart
+cp skills/metabase-chart/SKILL.md ~/.claude/skills/metabase-chart/SKILL.md
+```
+
+**Usage:** Type `/metabase-chart` in Claude Desktop and describe what you want to see.
+
+**What it does:**
+- Asks business-friendly questions in plain language (no IDs, no SQL visible to the user)
+- Shows a live data preview before creating anything
+- Requires explicit confirmation before creating or adding to a dashboard
+- Creates charts in native Metabase MBQL format (editable and filterable in the UI)
+- Automatically places charts in available space on the target dashboard
+
+---
+
 ## 🧪 Example Prompts to Try
 
 - Create a dashboard called 'Flight Overview' with a bar chart showing flights by destination city.
 - Run SQL: `SELECT origin, destination, COUNT(*) FROM flights GROUP BY origin, destination LIMIT 10`.
 - Create a card displaying total bookings last month grouped by region.
+- Add the 'Monthly Revenue' chart to the 'Finance' dashboard below the existing cards.
+- Move the KPI card to row 0, column 0 on the Sales dashboard and resize it to 6×3.
+- Show me all charts in the Marketing collection.
 - Delete the chart named 'Abandoned Queries'.
 - Update the dashboard 'Sales KPIs' to include a new revenue card.
 - Show all users in the 'Admin' group.

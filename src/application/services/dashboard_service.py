@@ -2,16 +2,12 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from application.ports.metabase_gateway import MetabaseGateway
+from application.schemas import DashboardCreatePayload, DashboardCopyPayload, DashboardUpdatePayload
 from domain.models import DashboardCard, DashboardTab, EmbeddingParams
 
 logger = logging.getLogger("metabase-mcp")
 
-# Optional dashcard fields that should be omitted from the payload when None,
-# instead of sent as null. `card_id` is intentionally NOT here: virtual cards
-# (heading/text/link) legitimately carry card_id=null and must keep it.
-_DROP_IF_NONE = {"dashboard_tab_id", "inline_parameters"}
-
-# Fields accepted by PUT /api/dashboard/:id dashcards. The GET response embeds
+# Fields accepted by PUT /api/dashboard/:id/cards. The GET response embeds
 # a full nested `card` object (with result_metadata, dataset_query, etc.) that
 # Metabase rejects when echoed back — sending it causes a transaction abort (500).
 _DASHCARD_PUT_FIELDS = frozenset({
@@ -20,10 +16,10 @@ _DASHCARD_PUT_FIELDS = frozenset({
     "dashboard_tab_id", "action_id", "inline_parameters",
 })
 
-
-def _serialize_card(card: DashboardCard) -> Dict[str, Any]:
-    """Serialize a DashboardCard model, dropping only the truly-optional None fields."""
-    return {k: v for k, v in card.__dict__.items() if not (v is None and k in _DROP_IF_NONE)}
+# Optional dashcard fields that should be omitted from the payload when None,
+# instead of sent as null. `card_id` is intentionally NOT here: virtual cards
+# (heading/text/link) legitimately carry card_id=null and must keep it.
+_DROP_IF_NONE = {"dashboard_tab_id", "inline_parameters"}
 
 
 def _strip_for_put(c: Dict[str, Any]) -> Dict[str, Any]:
@@ -62,7 +58,7 @@ def _strip_for_put(c: Dict[str, Any]) -> Dict[str, Any]:
                 },
             }
 
-    # Drop optional None fields (same logic as _serialize_card / _DROP_IF_NONE)
+    # Drop optional None fields (same logic as _DROP_IF_NONE)
     for field in _DROP_IF_NONE:
         if result.get(field) is None:
             result.pop(field, None)
@@ -133,20 +129,15 @@ class DashboardService:
         cache_ttl: Optional[int] = None,
         collection_position: Optional[int] = None,
     ) -> Dict[str, Any]:
-        payload: Dict[str, Any] = {"name": name}
-        if description is not None:
-            payload["description"] = description
-        if collection_id is not None:
-            payload["collection_id"] = collection_id
-        if parameters is not None:
-            payload["parameters"] = parameters
-        if tabs is not None:
-            payload["tabs"] = tabs
-        if cache_ttl is not None:
-            payload["cache_ttl"] = cache_ttl
-        if collection_position is not None:
-            payload["collection_position"] = collection_position
-
+        payload = DashboardCreatePayload(
+            name=name,
+            description=description,
+            collection_id=collection_id,
+            parameters=parameters,
+            tabs=tabs,
+            cache_ttl=cache_ttl,
+            collection_position=collection_position,
+        ).model_dump(exclude_none=True)
         logger.info(f"Creating dashboard '{name}'")
         return await self._gw.post("/api/dashboard", json=payload)
 
@@ -207,43 +198,24 @@ class DashboardService:
         # everything we don't send (including the existing dashcards/tabs when omitted),
         # so there's no need to fetch-and-echo the whole object (which also avoids
         # re-sending null fields that Metabase rejects on sparsely-populated dashboards).
-        payload: Dict[str, Any] = {}
-        if name is not None:
-            payload["name"] = name
-        if description is not None:
-            payload["description"] = description
-        if collection_id is not None:
-            payload["collection_id"] = collection_id
-        if parameters is not None:
-            payload["parameters"] = parameters
-        if tabs is not None:
-            payload["tabs"] = [t.__dict__ for t in tabs]
-        if dashcards is not None:
-            payload["dashcards"] = [_serialize_card(d) for d in dashcards]
-        if points_of_interest is not None:
-            payload["points_of_interest"] = points_of_interest
-        if caveats is not None:
-            payload["caveats"] = caveats
-        if enable_embedding is not None:
-            payload["enable_embedding"] = enable_embedding
-        if embedding_params is not None:
-            payload["embedding_params"] = {
-                k: v for k, v in embedding_params.__dict__.items() if v is not None
-            }
-        if archived is not None:
-            payload["archived"] = archived
-        if position is not None:
-            payload["position"] = position
-        if collection_position is not None:
-            payload["collection_position"] = collection_position
-        if cache_ttl is not None:
-            payload["cache_ttl"] = cache_ttl
-        if width is not None:
-            if width not in ["fixed", "full"]:
-                raise ValueError("width must be either 'fixed' or 'full'")
-            payload["width"] = width
-        if show_in_getting_started is not None:
-            payload["show_in_getting_started"] = show_in_getting_started
+        payload = DashboardUpdatePayload(
+            name=name,
+            description=description,
+            collection_id=collection_id,
+            parameters=parameters,
+            tabs=tabs,
+            dashcards=dashcards,
+            points_of_interest=points_of_interest,
+            caveats=caveats,
+            enable_embedding=enable_embedding,
+            embedding_params=embedding_params,
+            archived=archived,
+            position=position,
+            collection_position=collection_position,
+            cache_ttl=cache_ttl,
+            width=width,
+            show_in_getting_started=show_in_getting_started,
+        ).model_dump(exclude_none=True)
 
         if not payload:
             # Nothing to change; return current state instead of an empty PUT.
@@ -270,19 +242,18 @@ class DashboardService:
         current = existing.get("dashcards", []) or []
         tabs = existing.get("tabs", []) or []
 
-        new_card: Dict[str, Any] = {
-            "id": -1,  # Metabase assigns the real id
-            "card_id": card_id,
-            "row": row,
-            "col": col,
-            "size_x": size_x,
-            "size_y": size_y,
-            "series": series or [],
-            "parameter_mappings": parameter_mappings or [],
-            "visualization_settings": visualization_settings or {},
-        }
-        if dashboard_tab_id is not None:
-            new_card["dashboard_tab_id"] = dashboard_tab_id
+        new_card = DashboardCard(
+            id=-1,
+            card_id=card_id,
+            row=row,
+            col=col,
+            size_x=size_x,
+            size_y=size_y,
+            series=series or [],
+            parameter_mappings=parameter_mappings or [],
+            visualization_settings=visualization_settings or {},
+            dashboard_tab_id=dashboard_tab_id,
+        ).model_dump()
 
         logger.info(f"Adding card {card_id} to dashboard {dashboard_id}")
         return await self._put_dashcards(dashboard_id, current + [new_card], tabs=tabs)
@@ -342,15 +313,12 @@ class DashboardService:
         is_deep_copy: bool = False,
         collection_position: Optional[int] = None,
     ) -> Dict[str, Any]:
-        payload: Dict[str, Any] = {"name": name}
-        if description is not None:
-            payload["description"] = description
-        if collection_id is not None:
-            payload["collection_id"] = collection_id
-        if is_deep_copy is not None:
-            payload["is_deep_copy"] = is_deep_copy
-        if collection_position is not None:
-            payload["collection_position"] = collection_position
-
+        payload = DashboardCopyPayload(
+            name=name,
+            description=description,
+            collection_id=collection_id,
+            is_deep_copy=is_deep_copy,
+            collection_position=collection_position,
+        ).model_dump(exclude_none=True)
         logger.info(f"Copying dashboard {from_dashboard_id} to '{name}'")
         return await self._gw.post(f"/api/dashboard/{from_dashboard_id}/copy", json=payload)

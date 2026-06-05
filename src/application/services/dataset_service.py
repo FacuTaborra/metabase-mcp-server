@@ -2,6 +2,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from application.ports.metabase_gateway import MetabaseGateway
+from application.schemas import NativeQueryPayload
 
 logger = logging.getLogger("metabase-mcp")
 
@@ -19,9 +20,9 @@ class DatasetService:
         parameters: Optional[List] = None,
         template_tags: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
-        native: Dict[str, Any] = {"query": query}
-        if template_tags is not None:
-            native["template-tags"] = template_tags
+        native = NativeQueryPayload(
+            query=query, template_tags=template_tags
+        ).model_dump(by_alias=True, exclude_none=True)
 
         query_payload = {
             "database": database_id,

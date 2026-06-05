@@ -1,6 +1,7 @@
 from typing import Any, Dict, Optional
 
 from application.ports.metabase_gateway import MetabaseGateway
+from application.schemas import CollectionCreatePayload, CollectionUpdatePayload
 
 
 class CollectionService:
@@ -37,11 +38,9 @@ class CollectionService:
         color: Optional[str] = None,
         parent_id: Optional[int] = None,
     ) -> Dict[str, Any]:
-        payload: Dict[str, Any] = {"name": name}
-        if color:
-            payload["color"] = color
-        if parent_id:
-            payload["parent_id"] = parent_id
+        payload = CollectionCreatePayload(
+            name=name, color=color, parent_id=parent_id
+        ).model_dump(exclude_none=True)
         return await self._gw.post("/api/collection", json=payload)
 
     async def update(
@@ -51,13 +50,9 @@ class CollectionService:
         color: Optional[str] = None,
         parent_id: Optional[int] = None,
     ) -> Dict[str, Any]:
-        payload: Dict[str, Any] = {}
-        if name:
-            payload["name"] = name
-        if color:
-            payload["color"] = color
-        if parent_id:
-            payload["parent_id"] = parent_id
+        payload = CollectionUpdatePayload(
+            name=name, color=color, parent_id=parent_id
+        ).model_dump(exclude_none=True)
         return await self._gw.put(f"/api/collection/{collection_id}", json=payload)
 
     async def delete(self, collection_id: int) -> Dict[str, Any]:

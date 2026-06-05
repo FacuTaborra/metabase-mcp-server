@@ -1,25 +1,10 @@
-import json
 import logging
 from typing import Any, Dict, List, Optional, Union
 
 from application.ports.metabase_gateway import MetabaseGateway
+from application.schemas import CardCreatePayload, CardUpdatePayload
 
 logger = logging.getLogger("metabase-mcp")
-
-
-def _normalize_visualization_settings(
-    visualization_settings: Optional[Union[Dict[str, Any], str]],
-) -> Dict[str, Any]:
-    """Accept a dict or a JSON string and always return a dict."""
-    if visualization_settings is None:
-        return {}
-    if isinstance(visualization_settings, str):
-        try:
-            return json.loads(visualization_settings)
-        except json.JSONDecodeError:
-            logger.error("Invalid JSON in visualization_settings")
-            raise ValueError("visualization_settings must be a valid JSON object")
-    return visualization_settings
 
 
 class CardService:
@@ -67,34 +52,23 @@ class CardService:
         dashboard_tab_id: Optional[int] = None,
         entity_id: Optional[str] = None,
     ) -> Dict[str, Any]:
-        payload: Dict[str, Any] = {
-            "name": name,
-            "dataset_query": dataset_query,
-            "display": display,
-            "type": type,
-            "visualization_settings": _normalize_visualization_settings(visualization_settings),
-        }
-        if collection_id is not None:
-            payload["collection_id"] = collection_id
-        if description is not None:
-            payload["description"] = description
-        if parameter_mappings is not None:
-            payload["parameter_mappings"] = parameter_mappings
-        if collection_position is not None:
-            payload["collection_position"] = collection_position
-        if result_metadata is not None:
-            payload["result_metadata"] = result_metadata
-        if cache_ttl is not None:
-            payload["cache_ttl"] = cache_ttl
-        if parameters is not None:
-            payload["parameters"] = parameters
-        if dashboard_id is not None:
-            payload["dashboard_id"] = dashboard_id
-        if dashboard_tab_id is not None:
-            payload["dashboard_tab_id"] = dashboard_tab_id
-        if entity_id is not None:
-            payload["entity_id"] = entity_id
-
+        payload = CardCreatePayload(
+            name=name,
+            dataset_query=dataset_query,
+            display=display,
+            type=type,
+            visualization_settings=visualization_settings,
+            collection_id=collection_id,
+            description=description,
+            parameter_mappings=parameter_mappings,
+            collection_position=collection_position,
+            result_metadata=result_metadata,
+            cache_ttl=cache_ttl,
+            parameters=parameters,
+            dashboard_id=dashboard_id,
+            dashboard_tab_id=dashboard_tab_id,
+            entity_id=entity_id,
+        ).model_dump(exclude_none=True)
         logger.info(f"Creating card '{name}'")
         return await self._gw.post("/api/card", json=payload)
 
@@ -117,38 +91,23 @@ class CardService:
         dashboard_tab_id: Optional[int] = None,
         entity_id: Optional[str] = None,
     ) -> Dict[str, Any]:
-        payload: Dict[str, Any] = {}
-        if name is not None:
-            payload["name"] = name
-        if dataset_query is not None:
-            payload["dataset_query"] = dataset_query
-        if display is not None:
-            payload["display"] = display
-        if type is not None:
-            payload["type"] = type
-        # Preserve original behavior: visualization_settings is always set (defaults to {}).
-        payload["visualization_settings"] = _normalize_visualization_settings(visualization_settings)
-        if collection_id is not None:
-            payload["collection_id"] = collection_id
-        if description is not None:
-            payload["description"] = description
-        if parameter_mappings is not None:
-            payload["parameter_mappings"] = parameter_mappings
-        if collection_position is not None:
-            payload["collection_position"] = collection_position
-        if result_metadata is not None:
-            payload["result_metadata"] = result_metadata
-        if cache_ttl is not None:
-            payload["cache_ttl"] = cache_ttl
-        if parameters is not None:
-            payload["parameters"] = parameters
-        if dashboard_id is not None:
-            payload["dashboard_id"] = dashboard_id
-        if dashboard_tab_id is not None:
-            payload["dashboard_tab_id"] = dashboard_tab_id
-        if entity_id is not None:
-            payload["entity_id"] = entity_id
-
+        payload = CardUpdatePayload(
+            name=name,
+            dataset_query=dataset_query,
+            display=display,
+            type=type,
+            visualization_settings=visualization_settings,
+            collection_id=collection_id,
+            description=description,
+            parameter_mappings=parameter_mappings,
+            collection_position=collection_position,
+            result_metadata=result_metadata,
+            cache_ttl=cache_ttl,
+            parameters=parameters,
+            dashboard_id=dashboard_id,
+            dashboard_tab_id=dashboard_tab_id,
+            entity_id=entity_id,
+        ).model_dump(exclude_none=True)
         logger.info(f"Updating card {card_id}")
         return await self._gw.put(f"/api/card/{card_id}", json=payload)
 
