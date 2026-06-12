@@ -1,0 +1,15 @@
+services:
+  metabase-mcp:
+    build: .
+    container_name: metabase-mcp
+    env_file: .env
+    ports:
+      - "3200:3200"        # opcional si el cliente entra por la red Docker / cloudflared
+    networks:
+      - metabase-net
+    restart: unless-stopped
+
+networks:
+  metabase-net:
+    external: true
+    name: metabase_metanet1
