@@ -4,15 +4,18 @@ version = "0.1.0"
 description = "A Metabase MCP (Model Context Protocol) server for integrating Metabase with AI assistants"
 readme = "README.md"
 requires-python = ">=3.11"
-license = {text = "MIT"}
+license = {text = "Apache-2.0"}
 authors = [
     {name = "Ranjan Bhagat", email = "ranjan@codewalnut.com"}
+]
+maintainers = [
+    {name = "urbs-data"}
 ]
 keywords = ["metabase", "mcp", "model-context-protocol", "ai", "analytics", "dashboard"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
+    "License :: OSI Approved :: Apache Software License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -28,9 +31,10 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/CW-Codewalnut/metabase-mcp-server"
-Repository = "https://github.com/CW-Codewalnut/metabase-mcp-server"
-Issues = "https://github.com/CW-Codewalnut/metabase-mcp-server/issues"
+Homepage = "https://github.com/urbs-data/metabase-mcp-server"
+Repository = "https://github.com/urbs-data/metabase-mcp-server"
+Issues = "https://github.com/urbs-data/metabase-mcp-server/issues"
+"Upstream / Original" = "https://github.com/CW-Codewalnut/metabase-mcp-server"
 
 [build-system]
 requires = ["hatchling"]

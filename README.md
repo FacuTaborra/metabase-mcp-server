@@ -3,25 +3,25 @@
 ## 📚 Table of Contents
 
 1. [What is this tool about?](#-what-is-this-tool-about)
-2. [Video Walkthrough](#-video-walkthrough)
-3. [Architecture Diagram](#-architecture-diagram)
-4. [Getting Started](#-getting-started)
+2. [Architecture Diagram](#-architecture-diagram)
+3. [Getting Started](#-getting-started)
    - [Set Up Metabase](#1-set-up-metabase-if-you-havent-already)
    - [Install uv Package Manager](#2-install-uv-package-manager)
    - [Clone or Download the Repository](#3-clone-or-download-the-repository)
    - [Install dependencies](#4-install-dependencies)
    - [Configure Your Credentials](#5-configure-your-credentials)
    - [Connect to Your MCP client](#6-connect-to-your-mcp-client)
-5. [Configuration Options](#-configuration-options)
-6. [Getting Your Metabase API Key](#-getting-your-metabase-api-key)
-7. [DXT File Support](#-dxt-file-support)
-8. [How to Create Your Own DXT File](#how-to-create-your-own-dxt-file)
-9. [Remote Deployment](#-remote-deployment)
-10. [Debugging with MCP Inspector](#-debugging-with-mcp-inspector)
-11. [Available Tools](#-available-tools)
-12. [Skills](#-skills)
-13. [Example Prompts to Try](#-example-prompts-to-try)
-14. [Connect with Us](#-connect-with-us)
+4. [Configuration Options](#-configuration-options)
+5. [Getting Your Metabase API Key](#-getting-your-metabase-api-key)
+6. [DXT File Support](#-dxt-file-support)
+7. [How to Create Your Own DXT File](#how-to-create-your-own-dxt-file)
+8. [Remote Deployment](#-remote-deployment)
+9. [Debugging with MCP Inspector](#-debugging-with-mcp-inspector)
+10. [Available Tools](#-available-tools)
+11. [Skills](#-skills)
+12. [Example Prompts to Try](#-example-prompts-to-try)
+13. [Community & Support](#-community--support)
+14. [Credits](#-credits)
 15. [License](#-license)
 
 ---
@@ -37,14 +37,6 @@ Instead of navigating through menus or constructing SQL queries manually, you ca
 - Manage user access and database connections through simple instructions.
 
 This project makes Metabase not just a dashboarding tool—but a conversational, intelligent business assistant.
-
----
-
-## 🎥 Video Walkthrough
-
-Watch this video to see the Metabase MCP Server in action:
-
-[<img src="https://i.ytimg.com/vi/1-86KuNwbdE/maxresdefault.jpg">](https://youtu.be/1-86KuNwbdE?feature=shared")
 
 ---
 
@@ -104,7 +96,7 @@ cd ~/Downloads/metabase-mcp-server-dev
 
 **Option 1: Download ZIP**
 
-1.  Go to the [GitHub repository](https://github.com/codewalnut/metabase-mcp-server)
+1.  Go to the [GitHub repository](https://github.com/urbs-data/metabase-mcp-server)
 2.  Click the green **"Code"** button
 3.  Select **"Download ZIP"**
 4.  Unzip the downloaded file to a location like your **Documents** folder
@@ -112,7 +104,7 @@ cd ~/Downloads/metabase-mcp-server-dev
 **Option 2: Use Git** If you're familiar with Git, run this in your terminal:
 
 ```bash
-git clone https://github.com/codewalnut/metabase-mcp-server.git
+git clone https://github.com/urbs-data/metabase-mcp-server.git
 cd metabase-mcp-server
 
 ```
@@ -134,7 +126,11 @@ uv sync
 You have three options to configure your Metabase credentials for the MCP Server:
 
 **Option 1: Using a `.env` file (Recommended)**
-Create a `.env` file in the project root:
+The repository ships a `.env.example` you can copy as a starting point, then fill in your real values:
+
+```bash
+cp .env.example .env
+```
 
 ```env
 METABASE_URL=http://localhost:3000
@@ -142,8 +138,10 @@ METABASE_API_KEY=mb_xxx_your_key
 PORT=3200
 HOST=localhost
 TRANSPORT=streamable-http
-LOG_LEVEL=DEBUG
+LOG_LEVEL=INFO
 ```
+
+> **Note:** `TRANSPORT` defaults to `stdio`. Set `TRANSPORT=streamable-http` (as above) when you want the server to listen on a port for remote/HTTP clients.
 
 **Option 2: Using command-line arguments**
 Pass configuration directly via command line:
@@ -324,7 +322,7 @@ The Metabase MCP Server supports flexible configuration through environment vari
 | ------------------ | -------------------------- | ----------------- | --------------------------- |
 | `METABASE_URL`     | Your Metabase instance URL | Required          | `http://127.0.0.1:3000`     |
 | `METABASE_API_KEY` | Your Metabase API key      | Required          | `mb_xxx_your_api_key`       |
-| `TRANSPORT`        | Transport protocol         | `streamable-http` | `stdio`, `streamable-http`  |
+| `TRANSPORT`        | Transport protocol         | `stdio`           | `stdio`, `streamable-http`  |
 | `HOST`             | Host for HTTP transports   | `localhost`       | `0.0.0.0`, `127.0.0.1`      |
 | `PORT`             | Port for HTTP transports   | `3200`            | `8080`, `9000`              |
 | `LOG_LEVEL`        | Logging level              | `INFO`            | `DEBUG`, `WARNING`, `ERROR` |
@@ -335,7 +333,7 @@ The Metabase MCP Server supports flexible configuration through environment vari
 | -------------------- | ------------------------ | ----------------- |
 | `--metabase-url`     | Metabase instance URL    | Required          |
 | `--metabase-api-key` | Metabase API key         | Required          |
-| `--transport`        | Transport protocol       | `streamable-http` |
+| `--transport`        | Transport protocol       | `stdio`           |
 | `--host`             | Host for HTTP transports | `localhost`       |
 | `--port`             | Port for HTTP transports | `3200`            |
 | `--log-level`        | Logging verbosity level  | `INFO`            |
@@ -421,43 +419,62 @@ If you want to create your own **DXT file**, please visit the Official Guide:
 
 ## 🚀 Remote Deployment
 
-For production use or team collaboration, you can deploy the Metabase MCP Server remotely. We use this approach internally at Codewalnut.
+For production use or team collaboration, you can deploy the Metabase MCP Server remotely as an HTTP service (`TRANSPORT=streamable-http`).
 
 ### Docker Deployment
 
-We've included Docker configuration files to make remote deployment straightforward.
+The repository includes a `Dockerfile` and a `docker-compose.yml` to make remote deployment straightforward.
 
-#### Quick Start with Docker
+#### Docker Compose (Recommended)
+
+The bundled `docker-compose.yml` reads all configuration from a `.env` file and joins an **existing Docker network shared with your Metabase instance**, so the MCP can reach Metabase by its service name:
+
+```yaml
+services:
+  metabase-mcp:
+    build: .
+    container_name: metabase-mcp
+    env_file: .env
+    ports:
+      - "3200:3200" # optional if the client reaches it over the Docker network / a tunnel
+    networks:
+      - metabase-net
+    restart: unless-stopped
+
+networks:
+  metabase-net:
+    external: true
+    name: metabase_metanet1 # the network your Metabase containers already use
+```
+
+Steps:
+
+```bash
+# 1. Create your env file from the template and fill in real values
+cp .env.example .env
+
+# 2. Start the service (builds the image on first run)
+docker compose up -d --build
+```
+
+> **Network note:** `metabase_metanet1` must be the Docker network your Metabase stack already runs on, so set `METABASE_URL` to the Metabase **service name** (e.g. `http://metabase:3000`), not `localhost`. If your network has a different name, edit the `name:` field in `docker-compose.yml`. To inspect available networks run `docker network ls`. If you are running Metabase elsewhere (not in Docker), remove the `networks:` block and point `METABASE_URL` at its reachable URL instead.
+
+#### Quick Start without Compose
+
+If you prefer a one-off container, pass the configuration as environment variables:
 
 ```bash
 # Build the Docker image
 docker build -t metabase-mcp-server .
 
-# Run with environment variables
+# Run it
 docker run -d \
   -p 3200:3200 \
   -e METABASE_URL="http://your-metabase-instance.com" \
   -e METABASE_API_KEY="mb_xxx_your_api_key" \
+  -e TRANSPORT="streamable-http" \
+  -e HOST="0.0.0.0" \
   metabase-mcp-server
-```
-
-#### Docker Compose (Recommended)
-
-```yaml
-version: "3.8"
-services:
-  metabase-mcp:
-    build: .
-    ports:
-      - "3200:3200"
-    environment:
-      - METABASE_URL=http://your-metabase-instance.com
-      - METABASE_API_KEY=mb_xxx_your_api_key
-      ##- PORT=3200
-      ##- HOST=localhost
-      ##- TRANSPORT=streamable-http
-      ##- LOG_LEVEL=DEBUG
-    restart: unless-stopped
 ```
 
 #### Connecting to Remote MCP Server
@@ -489,10 +506,6 @@ Once deployed, configure your MCP clients to connect to the remote server:
 - Consider VPN access for sensitive business data
 - Regularly rotate API keys
 - Monitor access logs
-
-### Need Help with Deployment?
-
-Our team at CodeWalnut offers deployment and consulting services. [Contact us](#-connect-with-us) for enterprise-grade setup and support.
 
 ---
 
@@ -547,6 +560,8 @@ Once running, open your browser to `http://localhost:5173` to access the inspect
 ---
 
 ## 🔧 Available Tools
+
+The server exposes **36 tools** covering collections, charts, dashboards, databases, table/database metadata, users, groups, and raw SQL.
 
 | Function                     | Description                            |
 | ---------------------------- | -------------------------------------- |
@@ -642,37 +657,19 @@ cp skills/metabase-chart/SKILL.md ~/.claude/skills/metabase-chart/SKILL.md
 
 ---
 
-## 🌐 Connect with Us
+## 💬 Community & Support
 
-Stay connected and get support through our community channels:
+This is a community-maintained project — contributions, bug reports, and ideas are welcome!
 
-### 🏢 Official Links
+- **🐙 Repository:** [urbs-data/metabase-mcp-server](https://github.com/urbs-data/metabase-mcp-server)
+- **🐞 Issues:** [Report a bug or request a feature](https://github.com/urbs-data/metabase-mcp-server/issues)
+- **🤝 Contributing:** Open a pull request — improvements to tools, docs, and the `metabase-chart` skill are especially appreciated.
 
-- **🌍 Website:** [codewalnut.com](https://codewalnut.com)
-- **📧 Email:** [nattu@codewalnut.com](mailto:nattu@codewalnut.com)
-- **📖 Blogs:**
-  - **insights:** [codewalnut.com/insights](https://www.codewalnut.com/insights)
-  - **learn:** [codewalnut.com/learn](https://www.codewalnut.com/learn)
+---
 
-### 📱 Social Media
+## 🙏 Credits
 
-- **💼 LinkedIn:** [CodeWalnut](https://www.linkedin.com/company/codewalnut)
-- **📺 YouTube:** [CodeWalnut Channel](https://www.youtube.com/@CodeWalnut)
-- **🐦 Twitter/X:** [@codewalnut](https://x.com/codewalnut)
-- **📷 Instagram:** [@codewalnut](https://www.instagram.com/teamwalnut_)
-
-### 💬 Community Support
-
-- **📧 Newsletter:** [Subscribe to CodeWalnut Newsletter](https://codewalnut.com/) (scroll down to find the email subscription option)
-- **🐙 GitHub:** [codewalnut](https://github.com/CW-Codewalnut)
-
-### 🤝 Professional Services
-
-- **Consulting:** Custom Metabase integrations and AI solutions
-- **Training:** MCP and business intelligence workshops
-- **Support:** Enterprise-grade support and maintenance
-
-📢 **Follow us for updates on new MCP servers, AI integrations, and business intelligence tools!**
+This project started as a fork of [**CW-Codewalnut/metabase-mcp-server**](https://github.com/CW-Codewalnut/metabase-mcp-server) and is maintained as a community collaboration on top of their original work. Many thanks to the CodeWalnut team for building the foundation this project is based on.
 
 ---
 
